@@ -1,0 +1,173 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------------
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.2.1
+    command:
+      - redpanda start
+      - --smp 1
+      - --overprovisioned
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr 0.0.0.0:8082
+      - --advertise-pandaproxy-addr localhost:8082
+    ports:
+      - "19092:19092"
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=password
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=veloxx
+      - POSTGRES_USER=veloxx
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veloxx -d veloxx"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.6.1
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Veloxx Services
+  # ---------------------------------------------------------------------------
+
+  ai-engine:
+    build:
+      context: ../services/ai-engine
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - PORT=8000
+    depends_on:
+      - qdrant
+
+  ingest:
+    build:
+      context: ..
+      dockerfile: docker/ingest.Dockerfile
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - VELOXX__KAFKA__BROKERS=redpanda:9092
+      - VELOXX__SERVER__HTTP_PORT=4317
+      - VELOXX__SERVER__GRPC_PORT=4318
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+  storage:
+    build:
+      context: ..
+      dockerfile: docker/storage.Dockerfile
+    environment:
+      - VELOXX__KAFKA__BROKERS=redpanda:9092
+      - VELOXX__CLICKHOUSE__URL=http://clickhouse:8123
+      - VELOXX__POSTGRES__URL=postgres://veloxx:password@postgres:5432/veloxx
+      - VELOXX__QDRANT__HOST=qdrant
+      - VELOXX__AI__ENGINE_URL=http://ai-engine:8000
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/api.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - VELOXX__POSTGRES__URL=postgres://veloxx:password@postgres:5432/veloxx
+      - VELOXX__CLICKHOUSE__URL=http://clickhouse:8123
+      - VELOXX__QDRANT__HOST=qdrant
+      - VELOXX__AI__ENGINE_URL=http://ai-engine:8000
+    depends_on:
+      - postgres
+      - clickhouse
+      - ai-engine
+
+  alerting:
+    build:
+      context: ..
+      dockerfile: docker/alerting.Dockerfile
+    environment:
+      - VELOXX__KAFKA__BROKERS=redpanda:9092
+      - VELOXX__POSTGRES__URL=postgres://veloxx:password@postgres:5432/veloxx
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: ../dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  clickhouse_data:
+  postgres_data:
+  qdrant_data:

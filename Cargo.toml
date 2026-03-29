@@ -1,0 +1,84 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/common",
+    "crates/ingest",
+    "crates/storage",
+    "crates/api",
+    "crates/alerting",
+    "crates/ai-core",
+]
+
+[workspace.package]
+version     = "0.1.0"
+edition     = "2021"
+authors     = ["Veloxx Team"]
+license     = "MIT"
+repository  = "https://github.com/veloxx/veloxx"
+
+[workspace.dependencies]
+# Async runtime
+tokio        = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1" }
+
+# Web / gRPC
+axum         = { version = "0.7", features = ["ws", "macros"] }
+tower        = { version = "0.4" }
+tower-http   = { version = "0.5", features = ["cors", "trace", "compression-gzip"] }
+tonic        = { version = "0.11" }
+tonic-build  = { version = "0.11" }
+prost        = { version = "0.12" }
+
+# Kafka
+rdkafka      = { version = "0.36", features = ["cmake-build", "ssl", "sasl"] }
+
+# Serialization
+serde        = { version = "1", features = ["derive"] }
+serde_json   = { version = "1" }
+toml         = { version = "0.8" }
+
+# Database
+sqlx         = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+clickhouse   = { version = "0.11" }
+
+# HTTP client
+reqwest      = { version = "0.11", features = ["json", "rustls-tls"] }
+
+# Auth
+jsonwebtoken = { version = "9" }
+bcrypt       = { version = "0.15" }
+
+# Error handling
+anyhow       = { version = "1" }
+thiserror    = { version = "1" }
+
+# Observability
+tracing                    = { version = "0.1" }
+tracing-subscriber         = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry      = { version = "0.22" }
+
+# Utilities
+uuid         = { version = "1", features = ["v4", "serde"] }
+chrono       = { version = "0.4", features = ["serde"] }
+config       = { version = "0.14" }
+dotenvy      = { version = "0.15" }
+bytes        = { version = "1" }
+futures      = { version = "0.3" }
+async-trait  = { version = "0.1" }
+once_cell    = { version = "1" }
+regex        = { version = "1" }
+rand         = { version = "0.8" }
+base64       = { version = "0.21" }
+
+# Metrics
+prometheus   = { version = "0.13", features = ["process"] }
+
+[profile.release]
+opt-level   = 3
+lto         = "thin"
+codegen-units = 1
+strip       = true
+
+[profile.dev]
+opt-level   = 0
+debug       = true

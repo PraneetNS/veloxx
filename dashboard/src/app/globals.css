@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 10, 10, 10;
+  --background-end-rgb: 5, 5, 5;
+
+  --primary: 199 89% 48%; /* Veloxx Blue/Azure */
+  --secondary: 215 25% 27%;
+  --accent: 280 80% 60%; /* AI Purple */
+  --muted: 215 25% 15%;
+  --destructive: 0 84% 60%;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  min-height: 100vh;
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-xl;
+  }
+  .veloxx-card {
+    @apply bg-[#0d0f12] border border-[#1e2227] rounded-xl shadow-xl transition-all hover:border-[#30363d];
+  }
+  .veloxx-btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all active:scale-95 disabled:opacity-50;
+  }
+  .veloxx-btn-primary {
+    @apply veloxx-btn bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)];
+  }
+}

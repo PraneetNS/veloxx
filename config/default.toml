@@ -1,0 +1,54 @@
+# ---------------------------------------------------------------------------
+# Veloxx Default Configuration
+# ---------------------------------------------------------------------------
+
+[server]
+http_host = "0.0.0.0"
+http_port = 8080
+grpc_host = "0.0.0.0"
+grpc_port = 4318
+
+[kafka]
+brokers = "localhost:19092"
+group_id_prefix = "veloxx"
+linger_ms = 5
+compression = "snappy"
+topic_logs = "telemetry.logs"
+topic_metrics = "telemetry.metrics"
+topic_traces = "telemetry.traces"
+topic_anomalies = "ai.anomalies"
+
+[clickhouse]
+url = "http://localhost:8123"
+database = "default"
+username = "default"
+password = "password"
+flush_batch_size = 1000
+flush_interval_secs = 5
+
+[postgres]
+url = "postgres://veloxx:password@localhost:5432/veloxx"
+max_connections = 20
+
+[redis]
+url = "redis://localhost:6379"
+
+[qdrant]
+host = "localhost"
+port = 6333
+grpc_port = 6334
+collection = "logs_v1"
+vector_size = 384
+
+[ai]
+engine_url = "http://localhost:8001"
+engine_grpc = "localhost:50051"
+
+[auth]
+jwt_secret = "VELOXX_SECRET_CHANGE_ME_PRODUCTION_ONLY"
+jwt_expiry_secs = 3600
+refresh_expiry_secs = 604800
+
+[log]
+level = "info"
+format = "json"

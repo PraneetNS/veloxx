@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: veloxx
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: veloxx-config
+  namespace: veloxx
+data:
+  VELOXX__KAFKA__BROKERS: "redpanda.veloxx:9092"
+  VELOXX__CLICKHOUSE__URL: "http://clickhouse.veloxx:8123"
+  VELOXX__POSTGRES__URL: "postgres://veloxx:password@postgres.veloxx:5432/veloxx"
+  VELOXX__QDRANT__HOST: "qdrant.veloxx"
+  VELOXX__AI__ENGINE_URL: "http://ai-engine.veloxx:8000"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: veloxx-secret
+  namespace: veloxx
+type: Opaque
+stringData:
+  VELOXX__AUTH__JWT_SECRET: "PRODUCTION_SECRET_PASSWORD_REPLACE_ME"
+  VELOXX__CLICKHOUSE__PASSWORD: "password"
+  VELOXX__POSTGRES__PASSWORD: "password"
