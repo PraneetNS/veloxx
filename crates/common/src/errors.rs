@@ -43,7 +43,7 @@ pub enum VeloxxError {
     ClickHouse(String),
 
     #[error("postgres error: {0}")]
-    Postgres(#[from] sqlx::Error),
+    Postgres(String),
 
     #[error("redis error: {0}")]
     Redis(String),

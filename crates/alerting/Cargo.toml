@@ -14,7 +14,6 @@ ai-core    = { path = "../ai-core" }
 tokio      = { workspace = true }
 axum       = { workspace = true }
 tower-http = { workspace = true }
-rdkafka    = { workspace = true }
 serde      = { workspace = true }
 serde_json = { workspace = true }
 uuid       = { workspace = true }

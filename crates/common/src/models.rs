@@ -9,8 +9,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 
 /// Subscription plan that gates features and limits.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "plan", rename_all = "lowercase")]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Plan {
     Free,
@@ -121,8 +120,7 @@ pub struct User {
 }
 
 /// Role-based access control within a tenant.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "user_role", rename_all = "lowercase")]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum UserRole {
     Admin,

@@ -1,0 +1,12 @@
+C:\dev\veloxx\target\debug\deps\lz4-a61129bcbf8d3562.d: C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\lib.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\liblz4.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\decoder.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\encoder.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\block\mod.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\../README.md
+
+C:\dev\veloxx\target\debug\deps\liblz4-a61129bcbf8d3562.rlib: C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\lib.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\liblz4.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\decoder.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\encoder.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\block\mod.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\../README.md
+
+C:\dev\veloxx\target\debug\deps\liblz4-a61129bcbf8d3562.rmeta: C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\lib.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\liblz4.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\decoder.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\encoder.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\block\mod.rs C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\../README.md
+
+C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\lib.rs:
+C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\liblz4.rs:
+C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\decoder.rs:
+C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\encoder.rs:
+C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\block\mod.rs:
+C:\Users\savan\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lz4-1.28.1\src\../README.md:
