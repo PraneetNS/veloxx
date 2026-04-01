@@ -5,12 +5,20 @@
 //! and broadcasts them to all connected clients.
 
 use axum::extract::ws::{Message, WebSocket};
-use futures::{SinkExt, StreamExt};
+use futures::StreamExt;
 use tokio::time::{interval, Duration};
 use tracing::{debug, warn};
 use uuid::Uuid;
 
 use crate::handlers::ApiState;
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, clickhouse::Row)]
+struct LiveMetricRow {
+    name: String,
+    value: f64,
+    service: String,
+    timestamp: u32,
+}
 
 /// Handle a WebSocket connection for the live metric stream.
 pub async fn handle_ws(mut socket: WebSocket, tenant_id: Uuid, state: ApiState) {
@@ -31,7 +39,7 @@ pub async fn handle_ws(mut socket: WebSocket, tenant_id: Uuid, state: ApiState) 
                     tenant_id
                 );
 
-                match state.ch_client.query(&sql).fetch_all::<serde_json::Value>().await {
+                match state.ch_client.query(&sql).fetch_all::<LiveMetricRow>().await {
                     Ok(rows) => {
                         let msg = serde_json::to_string(&serde_json::json!({"metrics": rows}))
                             .unwrap_or_default();

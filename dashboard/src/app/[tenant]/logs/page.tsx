@@ -1,10 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Filter, Terminal, Clock, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Terminal, Sparkles } from "lucide-react";
+
+type LogRow = {
+  timestamp: number;
+  level: string;
+  service: string;
+  message: string;
+};
+
+type SemanticLogRow = {
+  payload: LogRow;
+};
 
 export default function LogsPage({ params }: { params: { tenant: string } }) {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<Array<LogRow | SemanticLogRow>>([]);
   const [filter, setFilter] = useState({ q: "", level: "", service: "", semantic: false });
   const [loading, setLoading] = useState(false);
 
@@ -35,8 +46,33 @@ export default function LogsPage({ params }: { params: { tenant: string } }) {
   };
 
   useEffect(() => {
-    fetchLogs();
-  }, [params.tenant]);
+    const loadLogs = async () => {
+      setLoading(true);
+      const token = localStorage.getItem("veloxx_token");
+      const endpoint = filter.semantic ? "search" : "logs";
+      let url = `http://localhost:8080/api/v1/${params.tenant}/${endpoint}?q=${filter.q}`;
+      if (!filter.semantic) {
+        if (filter.level) url += `&level=${filter.level}`;
+        if (filter.service) url += `&service=${filter.service}`;
+      }
+
+      try {
+        const resp = await fetch(url, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setLogs(filter.semantic ? data.result : data.data || []);
+        }
+      } catch (err) {
+        console.error("fetch logs failed", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadLogs();
+  }, [filter.level, filter.q, filter.semantic, filter.service, params.tenant]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col">
@@ -113,7 +149,7 @@ export default function LogsPage({ params }: { params: { tenant: string } }) {
 
         <div className="flex-1 overflow-y-auto font-mono text-xs divide-y divide-[#1e2227]/30">
           {logs.length > 0 ? logs.map((log, i) => {
-            const row = filter.semantic ? log.payload : log;
+            const row = filter.semantic ? (log as SemanticLogRow).payload : (log as LogRow);
             const levelColor = row.level === "ERROR" ? "text-red-500" : row.level === "WARN" ? "text-yellow-500" : "text-blue-400";
             return (
               <div key={i} className="px-6 py-4 flex items-baseline hover:bg-white/[0.02] transition-colors group cursor-text">

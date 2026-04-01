@@ -29,6 +29,7 @@ clickhouse   = { workspace = true }
 reqwest      = { workspace = true }
 jsonwebtoken = { workspace = true }
 argon2       = { workspace = true }
+bcrypt       = "0.15"
 futures      = { workspace = true }
 bytes        = { workspace = true }
 async-trait  = { workspace = true }

@@ -9,12 +9,11 @@ use common::{
     config::AppConfig,
     telemetry::{EventSource, LogLevel, LogPayload, MetricPayload, MetricValue, Payload, TelemetryEvent},
 };
-use rdkafka::producer::FutureProducer;
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::Status;
 use tracing::{error, info};
 use uuid::Uuid;
 
-use crate::kafka;
+use crate::kafka::{self, KafkaProducer};
 
 // ---------------------------------------------------------------------------
 // Minimal proto definitions (hand-written stubs — no generated code needed)
@@ -49,7 +48,7 @@ pub struct OtlpMetricRecord {
 /// Shared state for the gRPC server.
 pub struct OtlpReceiver {
     cfg:      AppConfig,
-    producer: Arc<FutureProducer>,
+    producer: Arc<KafkaProducer>,
 }
 
 impl OtlpReceiver {
@@ -129,8 +128,8 @@ impl OtlpReceiver {
 /// In a full production build this would import generated proto bindings.
 /// Here we expose the raw handler logic and bind a healthz-only server so
 /// the binary compiles and the infrastructure is in place for proto codegen.
-pub async fn serve(cfg: AppConfig, producer: Arc<FutureProducer>) -> Result<()> {
-    let addr = format!("{}:{}", cfg.server.grpc_host, cfg.server.grpc_port)
+pub async fn serve(cfg: AppConfig, producer: Arc<KafkaProducer>) -> Result<()> {
+    let addr: std::net::SocketAddr = format!("{}:{}", cfg.server.grpc_host, cfg.server.grpc_port)
         .parse()
         .expect("invalid gRPC address");
 
@@ -139,12 +138,9 @@ pub async fn serve(cfg: AppConfig, producer: Arc<FutureProducer>) -> Result<()> 
     // The receiver is available for integration; wire proto-generated traits here.
     let _receiver = OtlpReceiver { cfg, producer };
 
-    // Run a minimal gRPC server (healthz reflection available via grpc-health).
-    Server::builder()
-        .build_transport()
-        .listen_on(addr)
-        .await
-        .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))?;
+    // Keep the port reserved until generated gRPC bindings are wired in.
+    let _listener = tokio::net::TcpListener::bind(addr).await?;
+    futures::future::pending::<()>().await;
 
     Ok(())
 }

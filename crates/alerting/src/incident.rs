@@ -3,9 +3,14 @@
 //! Creates and updates lifecycle of incidents: `open` → `acknowledged` → `resolved`.
 
 use anyhow::{Context, Result};
-use sqlx::{PgPool, postgres::PgRow};
+use sqlx::PgPool;
 use uuid::Uuid;
-use tracing::{info, error};
+use tracing::info;
+
+#[derive(sqlx::FromRow)]
+struct IncidentIdRow {
+    id: Uuid,
+}
 
 pub struct IncidentStore {
     pool: std::sync::Arc<PgPool>,
@@ -27,16 +32,16 @@ impl IncidentStore {
     ) -> Result<Uuid> {
         info!(tenant_id = %tenant_id, alert_rule_id = %alert_rule_id, "opening incident");
 
-        let id = sqlx::query!(
+        let id = sqlx::query_as::<_, IncidentIdRow>(
             r#"INSERT INTO incidents (tenant_id, alert_rule_id, title, description, context, status)
                VALUES ($1, $2, $3, $4, $5, 'open')
-               RETURNING id"#,
-            tenant_id,
-            alert_rule_id,
-            title,
-            description,
-            context
+               RETURNING id"#
         )
+        .bind(tenant_id)
+        .bind(alert_rule_id)
+        .bind(title)
+        .bind(description)
+        .bind(context)
         .fetch_one(&*self.pool)
         .await
         .context("db: open incident")?;
@@ -47,13 +52,13 @@ impl IncidentStore {
 
     /// Resolve an open incident.
     pub async fn resolve(&self, incident_id: Uuid, resolved_by: Option<Uuid>) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"UPDATE incidents
                SET status = 'resolved', resolved_at = NOW(), resolved_by = $1
-               WHERE id = $2"#,
-            resolved_by,
-            incident_id
+               WHERE id = $2"#
         )
+        .bind(resolved_by)
+        .bind(incident_id)
         .execute(&*self.pool)
         .await
         .context("db: resolve incident")?;

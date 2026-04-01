@@ -5,21 +5,33 @@ import {
   ArrowUpRight, 
   Activity, 
   AlertTriangle, 
+  Bot,
   Cpu, 
   Zap, 
   Clock 
 } from "lucide-react";
 
+type LiveMetricsPayload = {
+  metrics?: unknown[];
+};
+
+type Anomaly = {
+  id: string;
+  severity: string;
+  opened_at: string;
+  title: string;
+  description: string | null;
+};
+
 export default function OverviewPage({ params }: { params: { tenant: string } }) {
-  const [metrics, setMetrics] = useState<any[]>([]);
-  const [anomalies, setAnomalies] = useState<any[]>([]);
-  const [status, setStatus] = useState("Healthy");
+  const [, setMetrics] = useState<unknown[]>([]);
+  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
 
   useEffect(() => {
     // 1. WebSocket for live metric updates.
     const ws = new WebSocket(`ws://localhost:8080/api/v1/${params.tenant}/live`);
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      const data: LiveMetricsPayload = JSON.parse(event.data);
       if (data.metrics) setMetrics(data.metrics);
     };
 

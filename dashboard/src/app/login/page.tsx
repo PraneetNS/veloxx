@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -30,7 +29,7 @@ export default function LoginPage() {
         const err = await resp.json();
         setError(err.error || "Login failed");
       }
-    } catch (err) {
+    } catch {
       setError("Server connection failed");
     }
   };

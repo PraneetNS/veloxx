@@ -17,23 +17,22 @@ use common::{
     config::AppConfig,
     telemetry::{EventSource, MetricPayload, MetricValue, Payload, TelemetryEvent},
 };
-use rdkafka::producer::FutureProducer;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 use uuid::Uuid;
 
-use crate::{kafka, parser, rate_limiter::RateLimiter};
+use crate::{kafka::{self, KafkaProducer}, parser, rate_limiter::RateLimiter};
 
 /// Shared application state for the HTTP server.
 #[derive(Clone)]
 pub struct IngestState {
     pub cfg:          AppConfig,
-    pub producer:     Arc<FutureProducer>,
+    pub producer:     Arc<KafkaProducer>,
     pub rate_limiter: RateLimiter,
 }
 
 /// Start the Axum HTTP server.
-pub async fn serve(cfg: AppConfig, producer: Arc<FutureProducer>) -> anyhow::Result<()> {
+pub async fn serve(cfg: AppConfig, producer: Arc<KafkaProducer>) -> anyhow::Result<()> {
     let addr = format!("{}:{}", cfg.server.http_host, cfg.server.http_port);
 
     let state = IngestState {

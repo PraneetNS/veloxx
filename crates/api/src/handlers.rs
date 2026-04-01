@@ -11,11 +11,11 @@ use clickhouse::Client;
 use common::config::AppConfig;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use tracing::error;
 use uuid::Uuid;
-use tracing::{error, info};
 
 use crate::{
-    auth::{generate_token, Claims},
+    auth::generate_token,
     middleware::AuthClaims,
     ws::handle_ws,
 };
@@ -46,17 +46,58 @@ pub struct TokenResponse {
     pub user_id:       Uuid,
 }
 
+#[derive(Debug, sqlx::FromRow)]
+struct LoginRow {
+    id: Uuid,
+    tenant_id: Uuid,
+    password_hash: String,
+    role: String,
+    is_active: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, clickhouse::Row)]
+struct ApiLogRow {
+    tenant_id: String,
+    timestamp: u32,
+    level: String,
+    message: String,
+    service: String,
+    trace_id: String,
+    labels: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, clickhouse::Row)]
+struct ApiMetricRow {
+    tenant_id: String,
+    timestamp: u32,
+    name: String,
+    value: f64,
+    service: String,
+    labels: String,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct IncidentRow {
+    id: Uuid,
+    title: String,
+    description: Option<String>,
+    severity: String,
+    status: String,
+    context: serde_json::Value,
+    opened_at: DateTime<Utc>,
+}
+
 /// `POST /api/v1/auth/login`
 pub async fn login(
     State(state): State<ApiState>,
     Json(req): Json<LoginRequest>,
 ) -> impl IntoResponse {
     // Look up the user.
-    let row = sqlx::query!(
+    let row = sqlx::query_as::<_, LoginRow>(
         r#"SELECT u.id, u.tenant_id, u.password_hash, u.role, u.is_active
-           FROM users u WHERE u.email = $1"#,
-        req.email
+           FROM users u WHERE u.email = $1"#
     )
+    .bind(&req.email)
     .fetch_optional(&state.db)
     .await;
 
@@ -159,7 +200,7 @@ pub async fn get_logs(
     let rows = state
         .ch_client
         .query(&sql)
-        .fetch_all::<serde_json::Value>()
+        .fetch_all::<ApiLogRow>()
         .await;
 
     match rows {
@@ -209,7 +250,7 @@ pub async fn get_metrics(
     }
     sql.push_str(&format!(" ORDER BY timestamp DESC LIMIT {}", limit));
 
-    match state.ch_client.query(&sql).fetch_all::<serde_json::Value>().await {
+    match state.ch_client.query(&sql).fetch_all::<ApiMetricRow>().await {
         Ok(data) => (StatusCode::OK, Json(serde_json::json!({"data": data}))).into_response(),
         Err(e)   => {
             error!(error = %e, "clickhouse metrics query failed");
@@ -291,16 +332,16 @@ pub async fn get_anomalies(
     Extension(AuthClaims(_claims)): Extension<AuthClaims>,
 ) -> impl IntoResponse {
     // Fetch recent open/acknowledged incidents from Postgres.
-    let rows = sqlx::query!(
-        r#"SELECT id, title, description, severity as "severity: _", status as "status: _",
+    let rows = sqlx::query_as::<_, IncidentRow>(
+        r#"SELECT id, title, description, severity::text as severity, status::text as status,
                   context, opened_at
            FROM incidents
            WHERE tenant_id = $1
              AND status != 'resolved'
            ORDER BY opened_at DESC
-           LIMIT 50"#,
-        tenant_id
+           LIMIT 50"#
     )
+    .bind(tenant_id)
     .fetch_all(&state.db)
     .await;
 
@@ -312,8 +353,8 @@ pub async fn get_anomalies(
                     "id":          r.id,
                     "title":       r.title,
                     "description": r.description,
-                    "severity":    format!("{:?}", r.severity),
-                    "status":      format!("{:?}", r.status),
+                    "severity":    r.severity,
+                    "status":      r.status,
                     "context":     r.context,
                     "opened_at":   r.opened_at,
                 }))

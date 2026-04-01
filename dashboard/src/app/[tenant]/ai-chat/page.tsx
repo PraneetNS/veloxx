@@ -3,8 +3,13 @@
 import { useState } from "react";
 import { Bot, User, Send, Sparkles, MessageSquare, Database, Terminal, Clock, Activity } from "lucide-react";
 
+type ChatMessage = {
+  role: "bot" | "user";
+  content: string;
+};
+
 export default function AiChatPage({ params }: { params: { tenant: string } }) {
-  const [messages, setMessages] = useState<any[]>([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "bot", content: `Hello! I'm Veloxx AI. How can I help you explore your telemetry for tenant ${params.tenant} today?` }
   ]);
   const [input, setInput] = useState("");
@@ -34,7 +39,7 @@ export default function AiChatPage({ params }: { params: { tenant: string } }) {
       } else {
         setMessages((prev) => [...prev, { role: "bot", content: "Error communicating with AI service" }]);
       }
-    } catch (err) {
+    } catch {
       setMessages((prev) => [...prev, { role: "bot", content: "Connection to AI service failed" }]);
     } finally {
       setLoading(false);

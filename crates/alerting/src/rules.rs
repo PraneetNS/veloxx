@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use sqlx::PgPool;
 use std::sync::Arc;
 use uuid::Uuid;
-use tracing::{info, warn, error, debug};
+use tracing::{debug, error, info};
 use serde::{Deserialize, Serialize};
 
 use crate::{dedup::DedupWindow, fanout::Fanout, incident::IncidentStore, fanout::Channel};
@@ -28,6 +28,20 @@ pub struct AlertRule {
 
 pub struct RuleEngine {
     pool: Arc<PgPool>
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct AlertRuleRow {
+    id: Uuid,
+    tenant_id: Uuid,
+    name: String,
+    description: Option<String>,
+    severity: String,
+    rule_type: String,
+    rule_config: serde_json::Value,
+    channels: serde_json::Value,
+    cooldown_secs: i32,
+    is_enabled: bool,
 }
 
 impl RuleEngine {
@@ -51,14 +65,14 @@ impl RuleEngine {
             .unwrap_or("unknown");
 
         // Fetch enabled rules for this tenant.
-        let rules = sqlx::query!(
+        let rules = sqlx::query_as::<_, AlertRuleRow>(
             r#"SELECT id, tenant_id, name, description,
-                      severity as "severity: _",
+                      severity::text as severity,
                       rule_type, rule_config, channels, cooldown_secs, is_enabled
                FROM alert_rules
-               WHERE tenant_id = $1 AND is_enabled = TRUE"#,
-            tenant_id
+               WHERE tenant_id = $1 AND is_enabled = TRUE"#
         )
+        .bind(tenant_id)
         .fetch_all(&*self.pool)
         .await?;
 
@@ -73,7 +87,8 @@ impl RuleEngine {
                         info!(rule = %row.name, "alert rule matched — firing alert");
 
                         let title = format!("Anomaly detected: {}", row.name);
-                        let desc  = row.description.as_deref().unwrap_or(&format!("Metric: {}", metric_name));
+                        let fallback_desc = format!("Metric: {}", metric_name);
+                        let desc = row.description.as_deref().unwrap_or(&fallback_desc);
 
                         // Store incident.
                         incident.open(tenant_id, row.id, &title, desc, anomaly).await?;

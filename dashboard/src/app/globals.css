@@ -27,15 +27,39 @@ body {
 
 @layer components {
   .glass {
-    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-xl;
+    background: rgb(255 255 255 / 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 0.75rem;
   }
   .veloxx-card {
-    @apply bg-[#0d0f12] border border-[#1e2227] rounded-xl shadow-xl transition-all hover:border-[#30363d];
+    background: #0d0f12;
+    border: 1px solid #1e2227;
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.25);
+    transition: all 150ms ease;
+  }
+  .veloxx-card:hover {
+    border-color: #30363d;
   }
   .veloxx-btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all active:scale-95 disabled:opacity-50;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 150ms ease;
+  }
+  .veloxx-btn:active {
+    transform: scale(0.95);
+  }
+  .veloxx-btn:disabled {
+    opacity: 0.5;
   }
   .veloxx-btn-primary {
-    @apply veloxx-btn bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)];
+    background: #2563eb;
+    color: white;
+    box-shadow: 0 0 15px rgb(37 99 235 / 0.4);
+  }
+  .veloxx-btn-primary:hover {
+    background: #3b82f6;
   }
 }
