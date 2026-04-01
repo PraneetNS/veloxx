@@ -32,7 +32,7 @@ pub async fn handle_ws(mut socket: WebSocket, tenant_id: Uuid, state: ApiState) 
             _ = ticker.tick() => {
                 // Query the last 10 metric rows for this tenant.
                 let sql = format!(
-                    "SELECT name, value, service, timestamp \
+                    "SELECT name, value, service, toUnixTimestamp(timestamp) as timestamp \
                      FROM metrics \
                      WHERE tenant_id = '{}' \
                      ORDER BY timestamp DESC LIMIT 10",
@@ -41,7 +41,13 @@ pub async fn handle_ws(mut socket: WebSocket, tenant_id: Uuid, state: ApiState) 
 
                 match state.ch_client.query(&sql).fetch_all::<LiveMetricRow>().await {
                     Ok(rows) => {
-                        let msg = serde_json::to_string(&serde_json::json!({"metrics": rows}))
+                        let data: Vec<serde_json::Value> = rows.into_iter().map(|r| serde_json::json!({
+                            "name":      r.name,
+                            "value":     r.value,
+                            "service":   r.service,
+                            "timestamp": r.timestamp,
+                        })).collect();
+                        let msg = serde_json::to_string(&serde_json::json!({"metrics": data}))
                             .unwrap_or_default();
                         if socket.send(Message::Text(msg.into())).await.is_err() {
                             debug!("ws client disconnected");

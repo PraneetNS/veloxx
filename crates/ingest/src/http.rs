@@ -138,7 +138,7 @@ async fn ingest_logs(
             HashMap::new(),
         );
 
-        if let Err(e) = kafka::produce_event(&state.producer, &state.cfg.kafka, &event).await {
+        if let Err(e) = state.producer.publish(&event).await {
             error!(error = %e, "failed to produce log event");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -186,7 +186,7 @@ async fn ingest_metrics(
             labels,
         );
 
-        if let Err(e) = kafka::produce_event(&state.producer, &state.cfg.kafka, &event).await {
+        if let Err(e) = state.producer.publish(&event).await {
             error!(error = %e, "failed to produce metric event");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,

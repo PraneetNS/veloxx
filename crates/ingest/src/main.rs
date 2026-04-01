@@ -30,12 +30,12 @@ async fn main() -> Result<()> {
     let cfg = AppConfig::load()?;
 
     // Build a shared Kafka producer.
-    let producer = kafka::build_producer(&cfg.kafka)?;
+    let producer = kafka::KafkaProducer::new(&cfg.kafka.brokers).await?;
     let producer = std::sync::Arc::new(producer);
 
     // Concurrently run HTTP and gRPC servers.
     let http_handle = http::serve(cfg.clone(), producer.clone());
-    let grpc_handle = grpc::serve(cfg.clone(), producer.clone());
+    let grpc_handle = grpc::run(cfg.clone());
 
     tokio::try_join!(http_handle, grpc_handle)?;
 

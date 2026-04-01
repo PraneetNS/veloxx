@@ -19,6 +19,7 @@ use crate::{
     middleware::AuthClaims,
     ws::handle_ws,
 };
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 
 /// Shared API state.
 #[derive(Clone)]
@@ -55,25 +56,23 @@ struct LoginRow {
     is_active: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, clickhouse::Row)]
-struct ApiLogRow {
-    tenant_id: String,
-    timestamp: u32,
-    level: String,
-    message: String,
-    service: String,
-    trace_id: String,
-    labels: String,
+#[derive(Debug, serde::Deserialize, clickhouse::Row)]
+struct LogRow {
+    pub tenant_id: String,
+    pub timestamp: u32,
+    pub level:     String,
+    pub message:   String,
+    pub service:   String,
+    pub trace_id:  String,
 }
 
-#[derive(Debug, Serialize, Deserialize, clickhouse::Row)]
-struct ApiMetricRow {
-    tenant_id: String,
-    timestamp: u32,
-    name: String,
-    value: f64,
-    service: String,
-    labels: String,
+#[derive(Debug, serde::Deserialize, clickhouse::Row)]
+struct MetricRow {
+    pub tenant_id: String,
+    pub timestamp: u32,
+    pub name:      String,
+    pub value:     f64,
+    pub service:   String,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -115,7 +114,9 @@ pub async fn login(
     }
 
     // Verify password.
-    let matches = bcrypt::verify(&req.password, &row.password_hash)
+    let parsed_hash = PasswordHash::new(&row.password_hash).map_err(|_| ()).ok();
+    let matches = parsed_hash
+        .map(|h| Argon2::default().verify_password(req.password.as_bytes(), &h).is_ok())
         .unwrap_or(false);
 
     if !matches {
@@ -178,7 +179,7 @@ pub async fn get_logs(
 
     // Build a dynamic ClickHouse query.
     let mut sql = format!(
-        "SELECT tenant_id, timestamp, level, message, service, trace_id, labels \
+        "SELECT tenant_id, toUnixTimestamp(timestamp) as timestamp, level, message, service, trace_id \
          FROM logs \
          WHERE tenant_id = '{}' \
            AND timestamp >= fromUnixTimestamp({}) \
@@ -200,11 +201,21 @@ pub async fn get_logs(
     let rows = state
         .ch_client
         .query(&sql)
-        .fetch_all::<ApiLogRow>()
+        .fetch_all::<LogRow>()
         .await;
 
     match rows {
-        Ok(data) => (StatusCode::OK, Json(serde_json::json!({"data": data}))).into_response(),
+        Ok(data) => {
+            let data: Vec<serde_json::Value> = data.into_iter().map(|r| serde_json::json!({
+                "tenant_id": r.tenant_id,
+                "timestamp": r.timestamp,
+                "level":     r.level,
+                "message":   r.message,
+                "service":   r.service,
+                "trace_id":  r.trace_id,
+            })).collect();
+            (StatusCode::OK, Json(serde_json::json!({"data": data}))).into_response()
+        },
         Err(e)   => {
             error!(error = %e, "clickhouse logs query failed");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response()
@@ -237,7 +248,7 @@ pub async fn get_metrics(
     let name    = q.name.clone().unwrap_or_default();
 
     let mut sql = format!(
-        "SELECT tenant_id, timestamp, name, value, service, labels \
+        "SELECT tenant_id, toUnixTimestamp(timestamp) as timestamp, name, value, service \
          FROM metrics \
          WHERE tenant_id = '{}' \
            AND timestamp >= fromUnixTimestamp({}) \
@@ -250,8 +261,17 @@ pub async fn get_metrics(
     }
     sql.push_str(&format!(" ORDER BY timestamp DESC LIMIT {}", limit));
 
-    match state.ch_client.query(&sql).fetch_all::<ApiMetricRow>().await {
-        Ok(data) => (StatusCode::OK, Json(serde_json::json!({"data": data}))).into_response(),
+    match state.ch_client.query(&sql).fetch_all::<MetricRow>().await {
+        Ok(data) => {
+            let data: Vec<serde_json::Value> = data.into_iter().map(|r| serde_json::json!({
+                "tenant_id": r.tenant_id,
+                "timestamp": r.timestamp,
+                "name":      r.name,
+                "value":     r.value,
+                "service":   r.service,
+            })).collect();
+            (StatusCode::OK, Json(serde_json::json!({"data": data}))).into_response()
+        },
         Err(e)   => {
             error!(error = %e, "clickhouse metrics query failed");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response()
@@ -332,7 +352,7 @@ pub async fn get_anomalies(
     Extension(AuthClaims(_claims)): Extension<AuthClaims>,
 ) -> impl IntoResponse {
     // Fetch recent open/acknowledged incidents from Postgres.
-    let rows = sqlx::query_as::<_, IncidentRow>(
+    match sqlx::query_as::<_, IncidentRow>(
         r#"SELECT id, title, description, severity::text as severity, status::text as status,
                   context, opened_at
            FROM incidents
@@ -343,9 +363,8 @@ pub async fn get_anomalies(
     )
     .bind(tenant_id)
     .fetch_all(&state.db)
-    .await;
-
-    match rows {
+    .await
+    {
         Ok(incidents) => {
             let data: Vec<serde_json::Value> = incidents
                 .into_iter()
