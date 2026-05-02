@@ -20,28 +20,6 @@
 
 ---
 
-## 🏗️ Architecture
-
-```mermaid
-graph TD
-    Client[Applications / OTLP Collectors] -->|OTLP gRPC/HTTP| Ingest[Ingest Service - Rust]
-    Ingest -->|Publish| Redpanda[Redpanda - Event Stream]
-    
-    Redpanda -->|Consume| Storage[Storage Service - Rust]
-    Storage -->|Write Logs/Metrics| ClickHouse[(ClickHouse)]
-    Storage -->|Write Metadata| Postgres[(PostgreSQL)]
-    Storage -->|Request Embeddings| AIEngine[AI Engine - Python]
-    AIEngine -->|Write Vectors| Qdrant[(Qdrant Vector DB)]
-    
-    API[API Gateway - Rust] -->|Query| ClickHouse
-    API -->|Query| Postgres
-    API -->|Query| Qdrant
-    
-    Dashboard[Next.js Dashboard] -->|REST/WS| API
-    
-    Alerting[Alerting Engine - Rust] -->|Monitor| Redpanda
-    Alerting -->|Config| Postgres
-```
 
 ---
 
