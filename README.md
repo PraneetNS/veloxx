@@ -82,11 +82,4 @@ Once running, the services will be available at:
 ├── dashboard/        # Next.js frontend application
 ├── infra/            # Docker Compose and infrastructure config
 ├── k8s/              # Kubernetes deployment manifests
-└── scripts/          # Utility and management scripts
-```
-
----
-
-## 📜 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+└── scripts/          # Utility and management script
